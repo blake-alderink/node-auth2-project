@@ -1,6 +1,32 @@
+const jwt = require('jsonwebtoken')
 const { JWT_SECRET } = require("../secrets"); // use this secret!
+const Users = require('../users/users-model')
+
 
 const restricted = (req, res, next) => {
+
+
+
+const token = req.headers.authorization;
+
+if (token) {
+    jwt.verify(token, JWT_SECRET, (err, decoded) => {
+      if (err) {
+         
+        next({message: "this is a bad token sorry"})
+
+      } else {
+
+              req.decodedJwt = decoded;
+              next();
+      }
+    })
+} else {
+  next({message: "you need a token cause this is restricted"})
+}
+
+
+
   /*
     If the user does not provide a token in the Authorization header:
     status 401
@@ -19,6 +45,16 @@ const restricted = (req, res, next) => {
 }
 
 const only = role_name => (req, res, next) => {
+
+  const user = Users.findBy()
+
+if (req.decodedJwt && req.decodedJwt.role_name === role_name)
+ {
+ next()
+ } else {
+    next({message: 'access restricted to other role'})
+ }
+
   /*
     If the user does not provide a token in the Authorization header with a role_name
     inside its payload matching the role_name passed to this function as its argument:
@@ -32,7 +68,18 @@ const only = role_name => (req, res, next) => {
 }
 
 
-const checkUsernameExists = (req, res, next) => {
+const checkUsernameExists = async (req, res, next) => {
+
+const exists = await Users.findBy({username: req.body.username})
+
+if (exists) {
+ next()
+} else {
+  next({message: "this username does not exist, sorry"})
+}
+
+
+
   /*
     If the username in req.body does NOT exist in the database
     status 401
@@ -44,6 +91,11 @@ const checkUsernameExists = (req, res, next) => {
 
 
 const validateRoleName = (req, res, next) => {
+
+
+
+
+  next()
   /*
     If the role_name in the body is valid, set req.role_name to be the trimmed string and proceed.
 
